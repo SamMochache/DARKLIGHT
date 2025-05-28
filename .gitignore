@@ -15,6 +15,11 @@ db.sqlite3-journal
 # Virtual environment (named thread)
 thread/
 
+#database and migration
+*.db
+*.sqlite3
+migrations
+
 # Distribution/packaging
 .Python
 build/
