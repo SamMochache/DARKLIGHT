@@ -19,6 +19,7 @@ thread/
 *.db
 *.sqlite3
 migrations
+Darklight_PostgreSQL.session.sql
 
 # Distribution/packaging
 .Python
