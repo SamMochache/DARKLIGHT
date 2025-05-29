@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     # Local Apps
     'users.apps.UsersConfig',
     'monitoring.apps.MonitoringConfig',
+    'network.apps.NetworkConfig',
 ]
 
 MIDDLEWARE = [
