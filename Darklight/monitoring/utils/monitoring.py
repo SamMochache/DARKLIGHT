@@ -1,8 +1,8 @@
 # utils/monitoring.py
 import psutil
-from ping3 import ping, verbose_ping
-from datetime import datetime
-from django.utils.timezone import now
+import subprocess
+import re
+import socket
 from monitoring.models import SystemMetrics, PingResult
 
 class SystemMonitor:
@@ -25,34 +25,37 @@ class SystemMonitor:
             return None
 
 class NetworkMonitor:
-    @staticmethod
-    def ping_ip(user, ip, count=3, timeout=2):
-        """Enhanced ping with multiple attempts and packet loss calculation"""
-        try:
-            results = []
-            success_count = 0
-            
-            for _ in range(count):
-                latency = ping(ip, timeout=timeout, unit='ms')
-                if latency is not None:
-                    success_count += 1
-                    results.append(latency)
-            
-            packet_loss = ((count - success_count) / count) * 100
-            avg_latency = sum(results) / len(results) if results else None
 
-            return PingResult.objects.create(
-                user=user,
-                target_ip=ip,
-                reachable=success_count > 0,
-                latency=avg_latency,
-                packet_loss=packet_loss
+    @staticmethod
+    def ping_ip(user, ip):
+        try:
+            # Ping once (Linux/Mac). On Windows use '-n 1'
+            output = subprocess.check_output(
+                ['ping', '-c', '1', ip],
+                stderr=subprocess.STDOUT,
+                universal_newlines=True,
+                timeout=3
             )
-        except Exception as e:
-            return PingResult.objects.create(
-                user=user,
-                target_ip=ip,
-                reachable=False,
-                latency=None,
-                packet_loss=100
-            )
+            # Check if packet received
+            reachable = bool(re.search(r'1 packets? received', output) or re.search(r'1 received', output))
+            latency = NetworkMonitor._extract_latency(output) if reachable else 0
+            return PingResult(user=user, target_ip=ip, reachable=reachable, latency=latency)
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            # ICMP ping failed or timed out, fallback to TCP socket check on port 80
+            try:
+                sock = socket.create_connection((ip, 80), timeout=2)
+                sock.close()
+                return PingResult(user=user, target_ip=ip, reachable=True, latency=0)
+            except Exception:
+                # TCP connection failed - unreachable
+                return PingResult(user=user, target_ip=ip, reachable=False, latency=0)
+        except Exception:
+            # Any unexpected error: treat as unreachable
+            return PingResult(user=user, target_ip=ip, reachable=False, latency=0)
+
+    @staticmethod
+    def _extract_latency(ping_output):
+        match = re.search(r'time=(\d+\.?\d*) ms', ping_output)
+        if match:
+            return float(match.group(1))
+        return 0
