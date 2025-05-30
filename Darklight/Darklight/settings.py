@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'monitoring.apps.MonitoringConfig',
     'network.apps.NetworkConfig',
+    'automation.apps.AutomationConfig',
 ]
 
 MIDDLEWARE = [
@@ -162,7 +163,8 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/hour',
-        'user': '1000/hour'
+        'user': '1000/hour',
+        'automation': '100/hour',
     }
 }
 

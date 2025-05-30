@@ -22,4 +22,6 @@ urlpatterns = [
     path('api/auth/', include('users.urls')),
     path('api/monitoring/', include('monitoring.urls')),   
     path('api/network/', include('network.urls')),
+    path('api/automation/', include('automation.urls')),
+    path('api-auth/', include('rest_framework.urls')),  # For browsable API auth
 ]
